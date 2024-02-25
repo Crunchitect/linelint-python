@@ -1,0 +1,1 @@
+colors = [(i % 2 * 255, i % 4 // 2 * 255, i // 4 * 255) for i in range(8)]
