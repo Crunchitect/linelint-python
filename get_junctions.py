@@ -2,15 +2,6 @@ import math
 import cv2 as cv
 import numpy as np
 
-
-def ccw(A, B, C):
-    return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
-
-
-def intersect(A, B, C, D):
-    return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
-
-
 def combinations(list_1, list_2):
     unique_combinations = []
     for i in range(len(list_1)):
@@ -47,10 +38,10 @@ def line_intersection(line1, line2):
 
         if dx1:
             if x1 < x3 < x2 or x1 > x3 > x2:
-                return math.inf  # infinitely many solutions
+                return None
         else:
             if y1 < y3 < y2 or y1 > y3 > y2:
-                return math.inf  # infinitely many solutions
+                return None
 
         if line1[0] == line2[0] or line1[1] == line2[0]:
             return line2[0]
@@ -68,17 +59,14 @@ def line_intersection(line1, line2):
 
 def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int]], list[tuple[int, int]]]:
     filename = 'map.png'
-    src = cv.imread(cv.samples.findFile(filename), cv.IMREAD_GRAYSCALE)
-    (_, im_bw) = cv.threshold(src, 128, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
+    src = cv.imread(cv.samples.findFile(filename))
+    im_bw = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
     if src is None:
         print('Error opening image!')
         return -1
-
     dst = im_bw
-    dst = cv.Canny(im_bw, 10, 10, None, 3)
-
-    cdstP = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
-
+    cdstP = cv.cvtColor(im_bw, cv.COLOR_GRAY2BGR)
+    # cv.imshow("Source", cdstP)
     linesP = cv.HoughLinesP(dst, 1, np.pi / 180, 50, None, 50, 20)
 
     if linesP is not None:
@@ -87,6 +75,7 @@ def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int
             cv.line(cdstP, (l[0], l[1]), (l[2], l[3]), (0, 0, 255), 1, cv.LINE_AA)
 
     # cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP)
+    
 
     intersection_points: list[tuple[int, int]] = []
     plinesP = linesP.tolist()
@@ -125,8 +114,11 @@ def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int
             t_junction = ((a[0] + b[0]) // 2, a[1])
             
             t_junctions.append(t_junction)
-            y_junctions.remove(a)
-            y_junctions.remove(b)
+            try:
+                y_junctions.remove(a)
+                y_junctions.remove(b)
+            except ValueError:
+                print("nuh uh")
     
 
     for y_junction in y_junctions:
@@ -138,8 +130,8 @@ def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int
         cv.imshow("Detected Four-Way Juntions (in yellow)", cdstP)
         cv.waitKey()
         return 0
-    else:
-        return cdstP, y_junctions, t_junctions
+    # else:
+    #     return cdstP, y_junctions, t_junctions
 
 
 if __name__ == "__main__":
