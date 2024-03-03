@@ -2,6 +2,22 @@ import cv2 as cv
 import numpy as np
 import time
 
+curr_nodes = []
+filename = 'assets/map.png'
+src = cv.imread(cv.samples.findFile(filename))
+def update_node(path):
+    global curr_nodes
+    curr_nodes = path
+    # print(curr_nodes)
+
+    dst = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
+    dst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
+    for i in curr_nodes:
+        dst = cv.circle(dst, (i.position[1], i.position[0]), 1, (0, 0, 255), 1)
+    cv.imshow('maze', dst)
+    cv.waitKey(1)
+
+
 class Node:
     """A node class for A* Pathfinding"""
 
@@ -41,6 +57,8 @@ def astar(maze, start, end):
         # Get the current node
         current_node = open_list[0]
         current_index = 0
+        update_node(closed_list)
+
         for index, item in enumerate(open_list):
             if item.f < current_node.f:
                 current_node = item
@@ -103,12 +121,8 @@ def astar(maze, start, end):
 
 
 def main():
-    filename = 'map.png'
-    src = cv.imread(cv.samples.findFile(filename), cv.IMREAD_GRAYSCALE)
-    (_, im_bw) = cv.threshold(src, 128, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
-    to_bin = lambda x: x // 255
-    maze = np.vectorize(to_bin)(im_bw)
-    # print(maze)
+    maze = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
+    maze = cv.bitwise_not(maze)
     # maze = [[0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
@@ -120,10 +134,10 @@ def main():
     #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     #         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
-    start = (308, 0)
-    end = (200, 1050)
+    start = (309, 0)
+    end = (189, 747)
     # start = (0, 0)
-    # end = (7, 6)
+    # end = (100, 100)
     start_time = time.perf_counter()
     path = astar(maze, start, end)
     end_time = time.perf_counter()

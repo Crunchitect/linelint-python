@@ -1,6 +1,7 @@
 import math
 import cv2 as cv
 import numpy as np
+from typing import Iterable
 
 def combinations(list_1, list_2):
     unique_combinations = []
@@ -16,6 +17,21 @@ def cross_product(array):
             permutations.append((val1, val2))
     return permutations
 
+
+def extrude_line(line, coeff=0.01):
+    sign = lambda x: 0 if x == 0 else abs(x) // x
+    x1, y1, x2, y2 = line
+    dx = x2 - x1
+    dy = y2 - y1
+    length = math.hypot(dx, dy)
+
+    x1 += int(sign(x1 - x2) * coeff * length)
+    x2 += int(sign(x2 - x1) * coeff * length)
+    y1 += int(sign(y1 - y2) * coeff * length)
+    y2 += int(sign(y2 - y1) * coeff * length)
+    dx = x2 - x1
+    dy = y2 - y1
+    return x1, y1, x2, y2
 
 def line_intersection(line1, line2):
     x1, y1, x2, y2 = line1
@@ -54,11 +70,11 @@ def line_intersection(line1, line2):
     t = det2 / det
 
     if 0.0 < s < 1.0 and 0.0 < t < 1.0:
-        return x1 + t * dx1, y1 + t * dy1
+        return int(x1 + t * dx1), int(y1 + t * dy1)
 
 
 def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int]], list[tuple[int, int]]]:
-    filename = 'map.png'
+    filename = 'assets/map.png'
     src = cv.imread(cv.samples.findFile(filename))
     im_bw = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
     if src is None:
@@ -78,60 +94,36 @@ def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int
     
 
     intersection_points: list[tuple[int, int]] = []
+    t_junctions = []
     plinesP = linesP.tolist()
     for a, b in cross_product(plinesP):
         if a == b: continue
         linea, lineb = a[0], b[0]
+
+        linea_long, lineb_long = extrude_line(linea), extrude_line(lineb)
+        intersection_point_long = line_intersection(linea, lineb_long)
+        if intersection_point_long:
+            print('!')
+            cv.circle(cdstP, intersection_point_long, 5, (255, 255, 0), 3)
+            t_junctions.append([intersection_point_long, lineb])
+        intersection_point_long = line_intersection(linea_long, lineb)
+        if intersection_point_long:
+            print('!')
+            cv.circle(cdstP, intersection_point_long, 5, (0, 255, 255), 3)
+            t_junctions.append([intersection_point_long, linea])
+
         intersection_point = line_intersection(linea, lineb)
-        if not isinstance(intersection_point, tuple):
+        if not intersection_point:
             continue
-        intersection_point = (int(intersection_point[0]), int(intersection_point[1]))
         intersection_points.append(intersection_point)
-        cv.circle(cdstP, intersection_point, 3, (0, 255, 0), 1)
+        cv.circle(cdstP, intersection_point, 5, (0, 255, 0), 3)
 
-    # cv.imshow("Detected Corners (in green) - Line Segment Intersection", cdstP)
-
-    y_junctions: list[tuple[int, int]] = []
-    # detect y junctions
-    for a, b in cross_product(intersection_points):
-        if a == b:
-            continue
-        if a[0] == b[0]:
-            y_junction = (a[0], (a[1] + b[1]) // 2)
-            
-            y_junctions.append(y_junction)
-    
-    # cv.imshow("Detected Three-Way Juntions (in blue)", cdstP)
-
-    t_junctions: list[tuple[int, int]] = []
-    img_width = len(src[0])
-    delta = img_width * 0.01
-    # detect t junctions
-    for a, b in cross_product(y_junctions):
-        if a == b:
-            continue
-        if a[1] == b[1] and abs(a[0] - b[0]) < delta:
-            t_junction = ((a[0] + b[0]) // 2, a[1])
-            
-            t_junctions.append(t_junction)
-            try:
-                y_junctions.remove(a)
-                y_junctions.remove(b)
-            except ValueError:
-                print("nuh uh")
-    
-
-    for y_junction in y_junctions:
-        cv.putText(cdstP, 'Y', y_junction, cv.FONT_HERSHEY_SIMPLEX, 2.0, (255, 0, 0), 3)
-    for t_junction in t_junctions:
-        cv.putText(cdstP, 'T', t_junction, cv.FONT_HERSHEY_SIMPLEX, 2.0, (0, 255, 255), 3)
-    
     if is_main:
         cv.imshow("Detected Four-Way Juntions (in yellow)", cdstP)
         cv.waitKey()
         return 0
-    # else:
-    #     return cdstP, y_junctions, t_junctions
+    else:
+        return cdstP, intersection_points, t_junctions
 
 
 if __name__ == "__main__":
