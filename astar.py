@@ -1,21 +1,21 @@
-import cv2 as cv
+import cv2
 import numpy as np
 import time
 
 curr_nodes = []
-filename = 'assets/map.png'
-src = cv.imread(cv.samples.findFile(filename))
+filename = 'assets/qwertyuiop.png'
+src = cv2.imread(cv2.samples.findFile(filename))
 def update_node(path):
     global curr_nodes
     curr_nodes = path
     # print(curr_nodes)
 
-    dst = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
-    dst = cv.cvtColor(dst, cv.COLOR_GRAY2BGR)
+    dst = cv2.ximgproc.thinning(cv2.bitwise_not(cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)))
+    dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
     for i in curr_nodes:
-        dst = cv.circle(dst, (i.position[1], i.position[0]), 1, (0, 0, 255), 1)
-    cv.imshow('maze', dst)
-    cv.waitKey(1)
+        dst = cv2.circle(dst, (i.position[1], i.position[0]), 1, (0, 0, 255), 1)
+    cv2.imshow('maze', dst)
+    cv2.waitKey(1)
 
 
 class Node:
@@ -57,6 +57,7 @@ def astar(maze, start, end):
         # Get the current node
         current_node = open_list[0]
         current_index = 0
+        # if __name__ == '__main__':
         update_node(closed_list)
 
         for index, item in enumerate(open_list):
@@ -119,10 +120,17 @@ def astar(maze, start, end):
             # Add the child to the open list
             open_list.append(child)
 
+def preprocess(img):
+    return cv2.bitwise_not(cv2.ximgproc.thinning(cv2.bitwise_not(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))))
+
+def get_path(img, start, end):
+    maze = preprocess(img)
+    path = astar(maze, start[::-1], end[::-1])
+    return path
 
 def main():
-    maze = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
-    maze = cv.bitwise_not(maze)
+    maze = cv2.ximgproc.thinning(cv2.bitwise_not(cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)))
+    maze = cv2.bitwise_not(maze)
     # maze = [[0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     #         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],

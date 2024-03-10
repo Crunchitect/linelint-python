@@ -1,130 +1,77 @@
-import math
-import cv2 as cv
-import numpy as np
-from typing import Iterable
+# -*- coding: utf-8 -*-
 
-def combinations(list_1, list_2):
-    unique_combinations = []
-    for i in range(len(list_1)):
-        for j in range(len(list_2)):
-            unique_combinations.append((list_1[i], list_2[j]))
-    return unique_combinations
+import cv2, numpy as np
+from constants import *
 
-def cross_product(array):
-    permutations = []
-    for i, val1 in enumerate(array):
-        for val2 in array[i+1:]:
-            permutations.append((val1, val2))
-    return permutations
+maps = ['map.png', 'ttttttt.png', 'w.png']
+map_index = 0
+
+cross = np.array([
+    [-0.5, 1, -0.5],
+    [1, 1, 1],
+    [-0.5, 1, -0.5]
+], dtype=np.byte)
 
 
-def extrude_line(line, coeff=0.01):
-    sign = lambda x: 0 if x == 0 else abs(x) // x
-    x1, y1, x2, y2 = line
-    dx = x2 - x1
-    dy = y2 - y1
-    length = math.hypot(dx, dy)
+# funky notation lol
+t_junction_kernels = {
+    '⊢': np.array([[-0.5, 1, -0.5], [-0.5, 1, 1], [-0.5, 1, -0.5]], dtype=np.byte),
+    '⊣': np.array([[-0.5, 1, -0.5], [1, 1, -0.5], [-0.5, 1, -0.5]], dtype=np.byte),
+    '⊤': np.array([[-0.5, -0.5, -0.5], [1, 1, 1], [-0.5, 1, -0.5]], dtype=np.byte),
+    '⊥': np.array([[-0.5, 1, -0.5], [1, 1, 1], [-0.5, -0.5, -0.5]], dtype=np.byte),
+}
 
-    x1 += int(sign(x1 - x2) * coeff * length)
-    x2 += int(sign(x2 - x1) * coeff * length)
-    y1 += int(sign(y1 - y2) * coeff * length)
-    y2 += int(sign(y2 - y1) * coeff * length)
-    dx = x2 - x1
-    dy = y2 - y1
-    return x1, y1, x2, y2
-
-def line_intersection(line1, line2):
-    x1, y1, x2, y2 = line1
-    x3, y3, x4, y4 = line2
-
-    dx1 = x2 - x1
-    dx2 = x4 - x3
-    dy1 = y2 - y1
-    dy2 = y4 - y3
-    dx3 = x1 - x3
-    dy3 = y1 - y3
-
-    det = dx1 * dy2 - dx2 * dy1
-    det1 = dx1 * dy3 - dx3 * dy1
-    det2 = dx2 * dy3 - dx3 * dy2
-
-    if det == 0.0:  # lines are parallel
-        if det1 != 0.0 or det2 != 0.0:  # lines are not co-linear
-            return None  # so no solution
-
-        if dx1:
-            if x1 < x3 < x2 or x1 > x3 > x2:
-                return None
-        else:
-            if y1 < y3 < y2 or y1 > y3 > y2:
-                return None
-
-        if line1[0] == line2[0] or line1[1] == line2[0]:
-            return line2[0]
-        elif line1[0] == line2[1] or line1[1] == line2[1]:
-            return line2[1]
-
-        return None  # no intersection
-
-    s = det1 / det
-    t = det2 / det
-
-    if 0.0 < s < 1.0 and 0.0 < t < 1.0:
-        return int(x1 + t * dx1), int(y1 + t * dy1)
+# `numpy` should have this as a builtin
+def setdiff2d(x: np.array, y: np.array, /):
+    return np.array(list(set(map(tuple, x.tolist())) - set(map(tuple, y.tolist()))))
 
 
-def get_junctions(*, is_main: bool = False) -> tuple[cv.Mat, list[tuple[int, int]], list[tuple[int, int]]]:
-    filename = 'assets/map.png'
-    src = cv.imread(cv.samples.findFile(filename))
-    im_bw = cv.ximgproc.thinning(cv.bitwise_not(cv.cvtColor(src, cv.COLOR_BGR2GRAY)))
-    if src is None:
-        print('Error opening image!')
-        return -1
-    dst = im_bw
-    cdstP = cv.cvtColor(im_bw, cv.COLOR_GRAY2BGR)
-    # cv.imshow("Source", cdstP)
-    linesP = cv.HoughLinesP(dst, 1, np.pi / 180, 50, None, 50, 20)
+def preprocess(img: cv2.Mat):
+    grayscaled = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    thinned = cv2.ximgproc.thinning(cv2.bitwise_not(grayscaled))
+    _, im_bw = cv2.threshold(thinned, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    return cv2.bitwise_not(im_bw)
 
-    if linesP is not None:
-        for i in range(0, len(linesP)):
-            l = linesP[i][0]
-            cv.line(cdstP, (l[0], l[1]), (l[2], l[3]), (0, 0, 255), 1, cv.LINE_AA)
+def detect(img: cv2.Mat, kernel: np.array):
+    filtered_image = cv2.filter2D(img, -1, kernel)
+    positions = np.vectorize(np.flip)(np.dstack(np.where(filtered_image == 0))[0])
+    return positions
 
-    # cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP)
+def get_junctions(img: cv2.Mat):
+    results = {}
+    field = preprocess(img)
+
+    intersections = detect(field, cross)
+    results['+'] = intersections
+    for kernel_type, t_junction_kernel in t_junction_kernels.items():
+        t_junctions = detect(field, t_junction_kernel)
+        t_junctions = setdiff2d(t_junctions, intersections)
+        results[kernel_type] = t_junctions
     
+    return results
 
-    intersection_points: list[tuple[int, int]] = []
-    t_junctions = []
-    plinesP = linesP.tolist()
-    for a, b in cross_product(plinesP):
-        if a == b: continue
-        linea, lineb = a[0], b[0]
+def main():
+    while True:
+        img = cv2.imread(f'assets/{maps[map_index]}')
+        grayscaled = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        thinned = cv2.ximgproc.thinning(cv2.bitwise_not(grayscaled))
+        _, im_bw = cv2.threshold(thinned, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
-        linea_long, lineb_long = extrude_line(linea), extrude_line(lineb)
-        intersection_point_long = line_intersection(linea, lineb_long)
-        if intersection_point_long:
-            print('!')
-            cv.circle(cdstP, intersection_point_long, 5, (255, 255, 0), 3)
-            t_junctions.append([intersection_point_long, lineb])
-        intersection_point_long = line_intersection(linea_long, lineb)
-        if intersection_point_long:
-            print('!')
-            cv.circle(cdstP, intersection_point_long, 5, (0, 255, 255), 3)
-            t_junctions.append([intersection_point_long, linea])
+        crossed = cv2.filter2D(cv2.bitwise_not(thinned), -1, cross)
+        intersections = np.dstack(np.where(crossed == 0))[0]
+        for intersection in intersections:
+            cv2.circle(img, np.flip(intersection), 3, (255, 0, 0), 3)
 
-        intersection_point = line_intersection(linea, lineb)
-        if not intersection_point:
-            continue
-        intersection_points.append(intersection_point)
-        cv.circle(cdstP, intersection_point, 5, (0, 255, 0), 3)
+        for kernel_type, t_junction_kernel in t_junction_kernels.items():
+            t_junction_filter = cv2.filter2D(cv2.bitwise_not(thinned), -1, t_junction_kernel)
+            t_junctions = np.dstack(np.where(t_junction_filter == 0))[0]
+            t_junctions = set(map(tuple, t_junctions.tolist())) - set(map(tuple, intersections.tolist()))
+            for t_junction in t_junctions:
+                cv2.circle(img, np.flip(t_junction), 3, (0, 0, 255), 3)
+        
+        cv2.imshow('result', img)
+        if cv2.waitKey(1) == ESCAPE_KEY:
+            break
 
-    if is_main:
-        cv.imshow("Detected Four-Way Juntions (in yellow)", cdstP)
-        cv.waitKey()
-        return 0
-    else:
-        return cdstP, intersection_points, t_junctions
-
-
-if __name__ == "__main__":
-    get_junctions(is_main=True)
+if __name__ == '__main__':
+    main()
