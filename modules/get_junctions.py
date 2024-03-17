@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import cv2, numpy as np
-from constants import *
+from modules.constants import *
 from typing import Callable
 from copy import deepcopy
 
@@ -9,18 +9,22 @@ maps = ['map.png', 'ttttttt.png', 'w.png']
 map_index = 0
 
 cross = np.array([
-    [-0.5, 1, -0.5],
+    [-1, 1, -1],
     [1, 1, 1],
-    [-0.5, 1, -0.5]
+    [-1, 1, -1]
 ], dtype=np.byte)
 
 
 # funky notation lol
 t_junction_kernels = {
-    '⊢': np.array([[-0.5, 1, -0.5], [-0.5, 1, 1], [-0.5, 1, -0.5]], dtype=np.byte),
-    '⊣': np.array([[-0.5, 1, -0.5], [1, 1, -0.5], [-0.5, 1, -0.5]], dtype=np.byte),
-    '⊤': np.array([[-0.5, -0.5, -0.5], [1, 1, 1], [-0.5, 1, -0.5]], dtype=np.byte),
-    '⊥': np.array([[-0.5, 1, -0.5], [1, 1, 1], [-0.5, -0.5, -0.5]], dtype=np.byte),
+    '⊢': np.array([[-1, 1, -1], [-1, 1, 1], [-1, 1, -1]], dtype=np.byte),
+    '⊣': np.array([[-1, 1, -1], [1, 1, -1], [-1, 1, -1]], dtype=np.byte),
+    '⊤': np.array([[-1, -1, -1], [1, 1, 1], [-1, 1, -1]], dtype=np.byte),
+    '⊥': np.array([[-1, 1, -1], [1, 1, 1], [-1, -1, -1]], dtype=np.byte),
+    'c1': np.array([[-1, 1, -1], [1, 1, -1], [-1, -1, -1]], dtype=np.byte),
+    'c2': np.array([[-1, 1, -1], [-1, 1, 1], [-1, -1, -1]], dtype=np.byte),
+    'c3': np.array([[-1, -1, -1], [-1, 1, 1], [-1, 1, -1]], dtype=np.byte),
+    'c4': np.array([[-1, -1, -1], [1, 1, -1], [-1, 1, -1]], dtype=np.byte),
 }
 
 # `numpy` should have this as a builtin

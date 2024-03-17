@@ -1,0 +1,59 @@
+bool b(int x) { return analog(x) < 500; }
+bool w(int x) { return analog(x) > 500; }
+
+void cross() {
+    int base_speed = 50;
+    float kp = 15, ki = 0, kd = 0;
+    int error = 0, last_error = 0, sum_error = 0;
+    while (true) {
+             if (b(0) && w(1) && w(2) && w(3) && w(4)) error = -4;
+        else if (b(0) && b(1) && w(2) && w(3) && w(4)) error = -3;
+        else if (w(0) && b(1) && w(2) && w(3) && w(4)) error = -2;
+        else if (w(0) && b(1) && b(2) && w(3) && w(4)) error = -1;
+        else if (w(0) && w(1) && b(2) && w(3) && w(4)) error = 0;
+        else if (w(0) && w(1) && b(2) && b(3) && w(4)) error = 1;
+        else if (w(0) && w(1) && w(2) && b(3) && w(4)) error = 2;
+        else if (w(0) && w(1) && w(2) && b(3) && b(4)) error = 3;
+        else if (w(0) && w(1) && w(2) && w(3) && b(4)) error = 4;
+        else if (b(0) && b(1) && b(2) && b(3) && b(4)) break;
+        sum_error += error;
+        float adjustment = (kp * error) + (kd * (error - last_error)) + (ki * sum_error);
+        float left_speed = base_speed + adjustment;
+        float right_speed = base_speed - adjustment;
+        
+        fd2((int)left_speed, (int)right_speed);
+    }
+    ao();
+}
+
+void forward() {
+    fd(50); sleep(1000);
+    ao();
+}
+
+void left() {
+    forward(); sl(50);
+    while(w(0));
+    while(b(0));
+    while(w(0));
+    ao();
+}
+
+void right() {
+    forward(); sr(50);
+    while(w(0));
+    while(b(0));
+    while(w(0));
+    ao();
+}
+
+void loop() {
+
+}
+
+void setup() {
+    cross();
+	left(); cross();
+	forward(); cross();
+	forward(); cross();
+}

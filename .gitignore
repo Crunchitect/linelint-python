@@ -1,2 +1,5 @@
 scrap.py
 .idea/
+.venv
+.vscode
+__pycache__

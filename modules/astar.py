@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 curr_nodes = []
-filename = 'assets/qwertyuiop.png'
+filename = 'assets/map.png'
 src = cv2.imread(cv2.samples.findFile(filename))
 def update_node(path):
     global curr_nodes
@@ -57,8 +57,8 @@ def astar(maze, start, end):
         # Get the current node
         current_node = open_list[0]
         current_index = 0
-        if __name__ == '__main__':
-            update_node(closed_list)
+        # if __name__ == '__main__':
+        update_node(closed_list)
 
         for index, item in enumerate(open_list):
             if item.f < current_node.f:
