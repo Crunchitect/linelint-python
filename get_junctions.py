@@ -2,6 +2,8 @@
 
 import cv2, numpy as np
 from constants import *
+from typing import Callable
+from copy import deepcopy
 
 maps = ['map.png', 'ttttttt.png', 'w.png']
 map_index = 0
@@ -38,15 +40,16 @@ def detect(img: cv2.Mat, kernel: np.array):
     return positions
 
 def get_junctions(img: cv2.Mat):
+    to_tuple: Callable[[np.ndarray], tuple] = lambda matrix: tuple(map(tuple, matrix))
     results = {}
     field = preprocess(img)
 
     intersections = detect(field, cross)
-    results['+'] = intersections
-    for kernel_type, t_junction_kernel in t_junction_kernels.items():
+    results[to_tuple(cross)] = intersections
+    for t_junction_kernel in t_junction_kernels.values():
         t_junctions = detect(field, t_junction_kernel)
         t_junctions = setdiff2d(t_junctions, intersections)
-        results[kernel_type] = t_junctions
+        results[to_tuple(t_junction_kernel)] = t_junctions
     
     return results
 
