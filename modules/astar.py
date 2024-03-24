@@ -15,7 +15,7 @@ def get_path(maze, start, end):
     startx = grid.node(*(start[::-1]))
     endx = grid.node(*(end[::-1]))
 
-    finder = AStarFinder(diagonal_movement=DiagonalMovement.only_when_no_obstacle)
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
     path, runs = finder.find_path(startx, endx, grid)
 
     print('operations:', runs, 'path length:', len(path))

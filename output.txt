@@ -53,7 +53,5 @@ void loop() {
 
 void setup() {
     cross();
-	left(); cross();
-	forward(); cross();
 	forward(); cross();
 }
