@@ -56,6 +56,7 @@ def get_junctions(img: cv2.Mat, thin=True):
     field = preprocess(img, thin)
 
     intersections = detect(field, cross)
+    print(intersections)
     results[to_tuple(cross)] = intersections
     # for kernel in kernels:
     #     junctions = detect(field, kernel)

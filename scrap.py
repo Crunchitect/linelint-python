@@ -11,13 +11,12 @@ def cross_product(v1: tuple[int, int], v2: tuple[int, int]):
 path_str = "cross();\n"
 maze = cv2.imread('jello.png')
 path = get_path(maze, (64, 521), (518, 233))
-print(path)
 junctions = get_junctions(maze, thin=False)
 print(junctions)
 i = 0
 for x1, y1, x2, y2, x3, y3 in np.lib.stride_tricks.sliding_window_view(path.flatten(), (6,))[::2]:
-    if (x2, y2) in junctions:
-        print('!')
+    junction_pos = np.array([x2, y2])
+    if np.any(np.all(junctions == junction_pos, axis=1)):
         u = (x2 - x1, y2 - y1)
         v = (x3 - x2, y3 - y2)
         output = cross_product(u, v)

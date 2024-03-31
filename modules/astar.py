@@ -19,4 +19,4 @@ def get_path(maze, start, end):
     path, runs = finder.find_path(startx, endx, grid)
 
     print('operations:', runs, 'path length:', len(path))
-    return np.array([[node.x, node.y] for node in path])
+    return np.array([[node.y, node.x] for node in path])
