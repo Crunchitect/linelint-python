@@ -1,4 +1,6 @@
-from modules.get_junctions import get_junctions
+from modules.astar import get_path
+import cv2
 
-if __name__ == '__main__':
-    print(get_junctions())
+maze = cv2.imread('jello.png')
+path = get_path(maze, (64, 521), (518, 233))
+print(path)
